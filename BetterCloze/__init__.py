@@ -1,4 +1,7 @@
 # import the main window object (mw) from aqt
+import time
+
+from anki.lang import without_unicode_isolation
 from aqt import mw
 
 # import the "show info" tool from utils.py
@@ -10,6 +13,7 @@ from aqt import gui_hooks
 from anki.cards import Card
 import random
 import re
+from threading import Thread
 
 
 def installed_successfully() -> None:
@@ -18,6 +22,29 @@ def installed_successfully() -> None:
         "BetterCloze is successfully installed!\n In order to use BetterCloze correctly, create two clones of "
         'the Cloze note type with names "Process" and "Properties" respectively.'
     )
+    install_note_types()
+
+
+def install_note_types() -> None:
+    def install_types() -> None:
+        process_notetype = mw.col.models.by_name("Process")
+        properties_notetype = mw.col.models.by_name("Properties")
+        cloze_notetype = mw.col.models.by_name("Cloze")
+
+        if process_notetype is None:
+            process_notetype = mw.col.models.copy(cloze_notetype)
+            process_notetype["name"] = "Process"
+            process_notetype["id"] = 0
+            mw.col.models.add_dict(process_notetype)
+
+        if properties_notetype is None:
+            properties_notetype = mw.col.models.copy(cloze_notetype)
+            properties_notetype["name"] = "Properties"
+            properties_notetype["id"] = 0
+            mw.col.models.add_dict(properties_notetype)
+
+    t = Thread(target=install_types, args=())
+    t.start()
 
 
 # create a new menu item, "test"
@@ -67,5 +94,6 @@ def process_cards(text: str, card: Card, kind: str) -> str:
     return text
 
 
+gui_hooks.main_window_did_init.append(install_note_types)
 gui_hooks.card_will_show.append(properties_cards)
 gui_hooks.card_will_show.append(process_cards)
